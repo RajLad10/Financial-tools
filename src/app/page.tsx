@@ -31,7 +31,7 @@ export default function Home() {
       {/* Feature links */}
       <section className="py-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-6">
-          <a href="/tools" className="card-surface elevation-1 transition hover:elevation-2">
+          <a href="/tools/sip" className="card-surface elevation-1 transition hover:elevation-2">
             <div className="p-7">
               <div className="text-blue-600 mb-4">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,7 +42,7 @@ export default function Home() {
               <p className="mt-2 text-gray-600 dark:text-gray-300">Plan investments and visualize growth over time.</p>
             </div>
           </a>
-          <a href="/tools" className="card-surface elevation-1 transition hover:elevation-2">
+          <a href="/tools/emi" className="card-surface elevation-1 transition hover=elevation-2">
             <div className="p-7">
               <div className="text-blue-600 mb-4">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">

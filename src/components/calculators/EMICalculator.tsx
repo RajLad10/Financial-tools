@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -12,9 +13,11 @@ import {
   LinearScale,
   BarElement,
   Title,
+  type TooltipItem,
 } from 'chart.js';
-import { Pie, Bar } from 'react-chartjs-2';
-import { motion } from 'framer-motion';
+const Pie = dynamic(() => import('react-chartjs-2').then((m) => m.Pie), { ssr: false });
+const Bar = dynamic(() => import('react-chartjs-2').then((m) => m.Bar), { ssr: false });
+import { animate, motion, useMotionValue } from 'framer-motion';
 
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -31,8 +34,33 @@ ChartJS.register(
   Title
 );
 
+// Formatters and animated number (match SIP behavior)
+const formatCurrency = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
+const formatCompactCurrency = (n: number) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    notation: 'compact',
+    maximumFractionDigits: 2,
+  }).format(Math.round(n));
+
+function AnimatedNumber({ value, duration = 0.8, format = formatCurrency }: { value: number; duration?: number; format?: (n:number)=>string }) {
+  const count = useMotionValue(0);
+  const [display, setDisplay] = useState<string>(format(0));
+  useEffect(() => {
+    const controls = animate(count, value, { duration, ease: 'easeOut' });
+    const unsub = count.on('change', (v) => setDisplay(format(Number(v))));
+    return () => {
+      controls.stop();
+      unsub();
+    };
+  }, [value, duration, count, format]);
+  return <span>{display}</span>;
+}
+
 export function EMICalculator() {
   const [result, setResult] = useState<EMICalculationResult | null>(null);
+  const [displayMode, setDisplayMode] = useState<'full'|'compact'>('full');
 
   const {
     register,
@@ -110,9 +138,8 @@ export function EMICalculator() {
         EMI Calculator
       </h1>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <div>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <Input
               label="Loan Amount (₹)"
               type="number"
@@ -138,70 +165,112 @@ export function EMICalculator() {
             <Button type="submit" disabled={isSubmitting}>
               Calculate
             </Button>
-          </form>
-        </div>
+        </form>
 
-        <div>
-          {result && (
+        {result && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center justify-end">
+                <div className="inline-flex rounded-md border border-gray-200 dark:border-white/10 overflow-hidden">
+                  <button type="button" aria-pressed={displayMode==='full'} onClick={() => setDisplayMode('full')} className={`px-3 py-1 text-sm ${displayMode==='full' ? 'bg-blue-600 text-white' : 'bg-transparent text-gray-600 dark:text-gray-300'}`}>Full</button>
+                  <button type="button" aria-pressed={displayMode==='compact'} onClick={() => setDisplayMode('compact')} className={`px-3 py-1 text-sm ${displayMode==='compact' ? 'bg-blue-600 text-white' : 'bg-transparent text-gray-600 dark:text-gray-300'}`}>Compact</button>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="bg-blue-50 dark:bg-blue-950/30 border border-transparent dark:border-white/10 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300">
                     Monthly EMI
                   </h3>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    ₹{Math.round(result.emi).toLocaleString()}
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap overflow-x-auto tabular-nums tracking-tight pr-1" title={formatCurrency(Math.round(result.emi))}>
+                    <AnimatedNumber key={`emi-${displayMode}`} value={Math.round(result.emi)} format={displayMode==='full' ? formatCurrency : formatCompactCurrency} />
                   </p>
                 </div>
                 <div className="bg-red-50 dark:bg-red-950/30 border border-transparent dark:border-white/10 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300">
                     Total Interest
                   </h3>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    ₹{Math.round(result.totalInterest).toLocaleString()}
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap overflow-x-auto tabular-nums tracking-tight pr-1" title={formatCurrency(Math.round(result.totalInterest))}>
+                    <AnimatedNumber key={`interest-${displayMode}`} value={Math.round(result.totalInterest)} format={displayMode==='full' ? formatCurrency : formatCompactCurrency} />
                   </p>
                 </div>
-                <div className="bg-purple-50 dark:bg-purple-950/30 border border-transparent dark:border-white/10 p-4 rounded-lg col-span-2">
+                <div className="bg-purple-50 dark:bg-purple-950/30 border border-transparent dark:border-white/10 p-4 rounded-lg sm:col-span-2">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300">
                     Total Payment
                   </h3>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    ₹{Math.round(result.totalPayment).toLocaleString()}
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap overflow-x-auto tabular-nums tracking-tight pr-1" title={formatCurrency(Math.round(result.totalPayment))}>
+                    <AnimatedNumber key={`total-${displayMode}`} value={Math.round(result.totalPayment)} format={displayMode==='full' ? formatCurrency : formatCompactCurrency} />
                   </p>
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
                 {pieChartData && (
-                  <div className="p-4 rounded-lg shadow border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.06]">
-                    <h3 className="text-sm font-medium text-gray-500 mb-4">
-                      Payment Breakup
-                    </h3>
-                    <Pie data={pieChartData} />
+                  <div className="p-4 rounded-lg shadow border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.06] w-full">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-4">Payment Breakup</h3>
+                    <Pie
+                      data={pieChartData}
+                      options={{
+                        responsive: true,
+                        plugins: {
+                          legend: {
+                            position: 'bottom',
+                            labels: {
+                              color: 'rgba(107,114,128,0.9)',
+                              boxWidth: 12,
+                              usePointStyle: true,
+                            },
+                          },
+                          tooltip: {
+                            callbacks: {
+                              label: (ctx: TooltipItem<'pie'>) => `${ctx.label}: ₹${Number(ctx.parsed).toLocaleString('en-IN')}`,
+                            },
+                          },
+                        },
+                      }}
+                    />
                   </div>
                 )}
 
                 {barChartData && (
-                  <div className="p-4 rounded-lg shadow border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.06]">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-4">
-                      Yearly Payments
-                    </h3>
+                  <div className="p-4 rounded-lg shadow border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.06] w-full h-80 sm:h-96">
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-300 mb-4">Yearly Payments</h3>
                     <Bar
                       data={barChartData}
                       options={{
                         responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        animation: { duration: 600, easing: 'easeOutQuart' },
+                        plugins: {
+                          legend: {
+                            position: 'bottom',
+                            labels: {
+                              color: 'rgba(107,114,128,0.9)',
+                              boxWidth: 12,
+                              usePointStyle: true,
+                            },
+                          },
+                          tooltip: {
+                            callbacks: {
+                              label: (ctx: TooltipItem<'bar'>) => `${ctx.dataset.label}: ₹${Number(ctx.parsed.y).toLocaleString('en-IN')}`,
+                            },
+                          },
+                        },
                         scales: {
                           x: {
                             stacked: true,
+                            grid: { color: 'rgba(148,163,184,0.15)' },
+                            ticks: { color: 'rgba(107,114,128,0.9)' },
                           },
                           y: {
                             stacked: true,
+                            grid: { color: 'rgba(148,163,184,0.15)' },
                             ticks: {
-                              callback: (value) => `₹${Number(value).toLocaleString()}`,
+                              color: 'rgba(107,114,128,0.9)',
+                              callback: (value: number | string) => `₹${Number(value).toLocaleString('en-IN')}`,
                             },
                           },
                         },
@@ -212,7 +281,6 @@ export function EMICalculator() {
               </div>
             </motion.div>
           )}
-        </div>
       </div>
     </div>
   );

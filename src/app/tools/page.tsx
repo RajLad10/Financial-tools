@@ -1,6 +1,11 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
-import { SIPCalculator } from '@/components/calculators/SIPCalculator';
-import { EMICalculator } from '@/components/calculators/EMICalculator';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Financial Tools — SIP & EMI Calculators',
+  description:
+    'Use free online SIP and EMI calculators with interactive charts. Estimate SIP maturity, EMI, total interest, and total payment with clarity.',
+  alternates: { canonical: '/tools' },
+};
 
 export default function Tools() {
   return (
@@ -13,26 +18,25 @@ export default function Tools() {
           <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
             Calculate investments and loan payments with ease.
           </p>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Explore our calculators:
+          </p>
         </div>
 
-        <Tabs defaultValue="sip" className="max-w-5xl mx-auto">
-          <div className="flex justify-center mb-6">
-            <TabsList className="p-0 grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="sip">SIP Calculator</TabsTrigger>
-              <TabsTrigger value="emi">EMI Calculator</TabsTrigger>
-            </TabsList>
-          </div>
-          <TabsContent value="sip">
-            <div className="card-surface elevation-1 p-4 sm:p-6">
-              <SIPCalculator />
+        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
+          <a href="/tools/sip" className="card-surface elevation-1 transition hover:elevation-2">
+            <div className="p-7">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">SIP Calculator</h2>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">Plan investments and visualize growth over time.</p>
             </div>
-          </TabsContent>
-          <TabsContent value="emi">
-            <div className="card-surface elevation-1 p-4 sm:p-6">
-              <EMICalculator />
+          </a>
+          <a href="/tools/emi" className="card-surface elevation-1 transition hover:elevation-2">
+            <div className="p-7">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">EMI Calculator</h2>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">Compute EMIs and understand principal vs interest.</p>
             </div>
-          </TabsContent>
-        </Tabs>
+          </a>
+        </div>
       </div>
     </div>
   );
