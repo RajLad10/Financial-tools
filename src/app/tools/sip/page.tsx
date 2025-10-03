@@ -89,7 +89,7 @@ export default function SIPPage() {
           </Tabs>
         </div>
 
-        {/* SEO content */}
+        {/* SEO content */ }
         <section className="prose dark:prose-invert max-w-3xl mx-auto mt-10">
           <h2>How this SIP calculator helps</h2>
           <p>
