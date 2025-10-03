@@ -97,7 +97,7 @@ export default function SIPPage() {
             see total investment, expected returns, and maturity value. Use the
             Full/Compact toggle to switch number formatting.
           </p>
-          <h3>Disclaimer</h3>
+          <h3>Disclaimer</h3> 
           <p>
             This tool is for educational purposes. Market returns are not
             guaranteed and past performance does not indicate future results.
