@@ -1,5 +1,7 @@
 import type { MetadataRoute } from 'next';
 
+export const revalidate = 0; // To ensure fresh response every time as Google console shows stale sitemap
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = (process.env.NEXT_PUBLIC_SITE_URL || 'https://financial-tools-blush.vercel.app').replace(/\/$/, '');
   const lastModified = new Date();
