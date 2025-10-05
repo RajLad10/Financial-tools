@@ -1,3 +1,24 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'SIP Calculator & EMI Calculator — FinCalc',
+  description:
+    'Free SIP and EMI calculators with interactive charts for investments and loans. Estimate SIP maturity, EMIs, total interest, and total payments instantly.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'SIP Calculator & EMI Calculator — FinCalc',
+    description:
+      'Free SIP and EMI calculators with interactive charts for investments and loans. Estimate SIP maturity, EMIs, total interest, and total payments instantly.',
+    url: '/',
+  },
+  twitter: {
+    title: 'SIP Calculator & EMI Calculator — FinCalc',
+    description:
+      'Free SIP and EMI calculators with interactive charts for investments and loans. Estimate SIP maturity, EMIs, total interest, and total payments instantly.',
+    card: 'summary_large_image',
+  },
+};
+
 export default function Home() {
   return (
     <main>

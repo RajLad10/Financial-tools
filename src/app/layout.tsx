@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Prefer environment-provided site URL (without trailing slash), fallback to production URL
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://financial-tools-blush.vercel.app").replace(/\/$/, "");
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://financial-tools-blush.vercel.app'),
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'FinCalc — SIP & EMI Calculator',
     template: '%s | FinCalc',
@@ -35,6 +38,9 @@ export const metadata: Metadata = {
   authors: [{ name: 'FinCalc' }],
   creator: 'FinCalc',
   publisher: 'FinCalc',
+  verification: {
+    google: '7Vj59_i1bwcGK0in8MgI2JJiQQPPFpwf_0sLlqNYBPY',
+  },
   alternates: {
     canonical: '/',
   },
@@ -47,6 +53,7 @@ export const metadata: Metadata = {
     siteName: 'FinCalc',
     images: [
       {
+        // Tip: replace with a real PNG/JPG og image at public/og-cover.png
         url: '/og-cover.png',
         width: 1200,
         height: 630,
@@ -85,16 +92,20 @@ export default function RootLayout({
                 {
                   '@type': 'Organization',
                   name: 'FinCalc',
-                  url: 'https://financial-tools-blush.vercel.app/',
-                  logo: 'https://financial-tools-blush.vercel.app/icon.png',
+                  url: `${siteUrl}/`,
+                  logo: `${siteUrl}/favicon.ico`,
+                  sameAs: [
+                    // Replace or remove with your actual profiles
+                    'https://x.com/fincalc',
+                  ],
                 },
                 {
                   '@type': 'WebSite',
                   name: 'FinCalc',
-                  url: 'https://financial-tools-blush.vercel.app/',
+                  url: `${siteUrl}/`,
                   potentialAction: {
                     '@type': 'SearchAction',
-                    target: 'https://financial-tools-blush.vercel.app/tools?q={search_term_string}',
+                    target: `${siteUrl}/tools?q={search_term_string}`,
                     'query-input': 'required name=search_term_string',
                   },
                 },
