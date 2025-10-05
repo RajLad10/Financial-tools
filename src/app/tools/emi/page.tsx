@@ -181,7 +181,7 @@ export default function EMIPage() {
           <h2>Reducing Balance vs Flat Interest Rate</h2>
           <p>
             Most banks use the <strong>reducing balance method</strong>, where interest is calculated on the outstanding principal
-            after each EMI payment. This is what our calculator uses, and it's more borrower-friendly than the flat rate method.
+            after each EMI payment. This is what our calculator uses, and it&apos;s more borrower-friendly than the flat rate method.
           </p>
           <p>
             In contrast, the <strong>flat rate method</strong> calculates interest on the original principal throughout the loan tenure,

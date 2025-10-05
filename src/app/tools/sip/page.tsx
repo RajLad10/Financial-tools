@@ -179,7 +179,7 @@ export default function SIPPage() {
           <h2>Realistic Return Expectations</h2>
           <p>
             Historical data shows that equity mutual funds in India have delivered 12-15% CAGR over long periods (10+ years),
-            while debt funds typically return 6-8%. However, past performance doesn't guarantee future results. Consider:
+            while debt funds typically return 6-8%. However, past performance doesn&apos;t guarantee future results. Consider:
           </p>
           <ul>
             <li>Market conditions and economic cycles</li>
