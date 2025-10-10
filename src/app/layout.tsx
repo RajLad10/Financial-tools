@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   creator: 'FinCalc',
   publisher: 'FinCalc',
   verification: {
-    google: '7Vj59_i1bwcGK0in8MgI2JJiQQPPFpwf_0sLlqNYBPY',
+    google: 'iXEOejM2oguAvYuOiL7QrftDj1VObr1yAhkPlhJAHQc',
   },
   alternates: {
     canonical: '/',
