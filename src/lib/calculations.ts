@@ -9,6 +9,145 @@ export interface SIPCalculationResult {
   }>;
 }
 
+// --- EMI advanced helpers ---
+export function calculateMonthlyEMI(
+  principalAmount: number,
+  interestRate: number,
+  tenureInYears: number
+): number {
+  const r = interestRate / (12 * 100);
+  const n = Math.max(1, Math.round(tenureInYears * 12));
+  return (
+    (principalAmount * r * Math.pow(1 + r, n)) /
+    (Math.pow(1 + r, n) - 1)
+  );
+}
+
+export interface PrepaymentInput {
+  principalAmount: number;
+  interestRate: number; // annual %
+  tenureInYears: number;
+  prepaymentAmount: number;
+  prepaymentMonth: number; // 1-indexed
+  mode: 'reduce_tenure' | 'reduce_emi';
+}
+
+export interface PrepaymentResult {
+  originalEmi: number;
+  newEmi?: number;
+  newTenureMonths?: number;
+  totalInterestSaved: number;
+  newTotalPayment: number;
+  before: Array<{ month: number; remaining: number }>;
+  after: Array<{ month: number; remaining: number }>;
+}
+
+export function simulatePrepayment(input: PrepaymentInput): PrepaymentResult {
+  const { principalAmount, interestRate, tenureInYears, prepaymentAmount, prepaymentMonth, mode } = input;
+  const r = interestRate / (12 * 100);
+  const n = Math.max(1, Math.round(tenureInYears * 12));
+
+  // Build baseline amortization up to full term
+  const baseEmi = calculateMonthlyEMI(principalAmount, interestRate, tenureInYears);
+  let remaining = principalAmount;
+  const before: Array<{ month: number; remaining: number }> = [];
+  for (let m = 1; m <= n; m++) {
+    const interest = remaining * r;
+    const principal = baseEmi - interest;
+    remaining = Math.max(0, remaining - principal);
+    before.push({ month: m, remaining });
+  }
+  const baseTotalPayment = baseEmi * n;
+  const baseTotalInterest = baseTotalPayment - principalAmount;
+
+  // After-prepayment path
+  let rem = principalAmount;
+  const after: Array<{ month: number; remaining: number }> = [];
+
+  // First iterate up to prepayment month with baseEmi
+  for (let m = 1; m <= Math.min(prepaymentMonth - 1, n); m++) {
+    const interest = rem * r;
+    const principal = baseEmi - interest;
+    rem = Math.max(0, rem - principal);
+    after.push({ month: m, remaining: rem });
+  }
+
+  // Apply prepayment lump sum at prepaymentMonth
+  if (prepaymentMonth >= 1 && prepaymentMonth <= n) {
+    rem = Math.max(0, rem - prepaymentAmount);
+    after.push({ month: prepaymentMonth, remaining: rem });
+  }
+
+  // Continue based on mode
+  if (mode === 'reduce_tenure') {
+    // keep EMI same, find when remaining hits 0
+    let m = Math.max(1, prepaymentMonth);
+    while (rem > 0 && m < 6000) { // safe guard
+      const interest = rem * r;
+      const principal = Math.min(rem, baseEmi - interest);
+      rem = Math.max(0, rem - principal);
+      m++;
+      after.push({ month: m, remaining: rem });
+    }
+    const newTenureMonths = after[after.length - 1]?.month ?? n;
+    // Payments: EMIs paid until prepayment-1, prepayment amount, then EMIs until closure
+    const emisBefore = Math.max(0, prepaymentMonth - 1);
+    const emisAfter = Math.max(0, newTenureMonths - (prepaymentMonth - 1));
+    const newTotalPayment = emisBefore * baseEmi + prepaymentAmount + emisAfter * baseEmi;
+    const newTotalInterest = newTotalPayment - principalAmount;
+    const totalInterestSaved = baseTotalInterest - newTotalInterest;
+    return {
+      originalEmi: baseEmi,
+      newTenureMonths,
+      totalInterestSaved,
+      newTotalPayment,
+      before,
+      after,
+    };
+  } else {
+    // reduce EMI, keep tenure same; compute new EMI for remaining term
+    const monthsLeft = Math.max(0, n - (prepaymentMonth - 1));
+    const newEmi = monthsLeft > 0
+      ? (rem * r * Math.pow(1 + r, monthsLeft)) / (Math.pow(1 + r, monthsLeft) - 1)
+      : 0;
+
+    let m = Math.max(1, prepaymentMonth) + 1;
+    while (rem > 0 && m <= n) {
+      const interest = rem * r;
+      const principal = Math.min(rem, newEmi - interest);
+      rem = Math.max(0, rem - principal);
+      after.push({ month: m, remaining: rem });
+      m++;
+    }
+    const newTotalPayment = (prepaymentMonth - 1) * baseEmi + prepaymentAmount + newEmi * (n - (prepaymentMonth - 1));
+    const newTotalInterest = newTotalPayment - principalAmount;
+    const totalInterestSaved = baseTotalInterest - newTotalInterest;
+    return {
+      originalEmi: baseEmi,
+      newEmi,
+      totalInterestSaved,
+      newTotalPayment,
+      before,
+      after,
+    };
+  }
+}
+
+export function calculateAffordableLoan(
+  affordableEmi: number,
+  interestRate: number,
+  tenureInYears: number
+): { eligibleLoan: number; totalPayment: number; totalInterest: number } {
+  const r = interestRate / (12 * 100);
+  const n = Math.max(1, Math.round(tenureInYears * 12));
+  // Invert EMI formula: P = E * ((1+r)^n - 1) / (r * (1+r)^n)
+  const numerator = Math.pow(1 + r, n) - 1;
+  const denominator = r * Math.pow(1 + r, n);
+  const eligibleLoan = (affordableEmi * numerator) / denominator;
+  const totalPayment = affordableEmi * n;
+  const totalInterest = totalPayment - eligibleLoan;
+  return { eligibleLoan, totalPayment, totalInterest };
+}
 export function calculateSIP(
   monthlyInvestment: number,
   years: number,
