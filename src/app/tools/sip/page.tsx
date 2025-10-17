@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     'sip return calculator',
     'investment calculator',
     'sip maturity calculator',
+    'target sip calculator',
+    'step up sip calculator',
+    'sip vs lumpsum calculator',
   ],
   openGraph: {
     title: 'SIP Calculator — Mutual Fund SIP Return Estimator',
@@ -32,8 +35,28 @@ export const metadata: Metadata = {
 };
 
 export default function SIPPage() {
+  const base = (process.env.NEXT_PUBLIC_SITE_URL || 'https://financial-tools-blush.vercel.app').replace(/\/$/, '');
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Tools', item: `${base}/tools` },
+      { '@type': 'ListItem', position: 2, name: 'SIP Calculator', item: `${base}/tools/sip` },
+    ],
+  };
+  const appJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'FinCalc SIP Calculator',
+    applicationCategory: 'FinanceApplication',
+    operatingSystem: 'Web',
+    url: `${base}/tools/sip`,
+    offers: { '@type': 'Offer', price: 0, priceCurrency: 'USD' },
+  };
   return (
     <div className="py-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd) }} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">

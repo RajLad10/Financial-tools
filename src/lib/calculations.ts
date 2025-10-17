@@ -9,6 +9,119 @@ export interface SIPCalculationResult {
   }>;
 }
 
+// --- FD Calculator ---
+export function calculateFD(
+  principal: number,
+  annualRate: number,
+  years: number,
+  compoundingPerYear: number = 4 // default quarterly compounding common in India
+): { maturityAmount: number; interestEarned: number } {
+  const r = annualRate / 100;
+  const n = compoundingPerYear;
+  const t = years;
+  const maturityAmount = principal * Math.pow(1 + r / n, n * t);
+  const interestEarned = maturityAmount - principal;
+  return { maturityAmount, interestEarned };
+}
+
+// --- RD Calculator (monthly deposit with monthly compounding simulation) ---
+export function calculateRD(
+  monthlyDeposit: number,
+  annualRate: number,
+  years: number
+): { maturityAmount: number; totalDeposit: number; interestEarned: number } {
+  const rMonthly = annualRate / (12 * 100);
+  const months = Math.max(1, Math.round(years * 12));
+  let value = 0;
+  let totalDeposit = 0;
+  for (let m = 1; m <= months; m++) {
+    // deposit at end of month, then compound to maturity
+    value = (value + monthlyDeposit) * (1 + rMonthly);
+    totalDeposit += monthlyDeposit;
+  }
+  const maturityAmount = value;
+  const interestEarned = maturityAmount - totalDeposit;
+  return { maturityAmount, totalDeposit, interestEarned };
+}
+
+// --- Income Tax (India) FY 2024-25 approximation ---
+export interface TaxBreakdown {
+  taxableIncome: number;
+  slabTax: number;
+  healthEducationCess: number;
+  totalTax: number;
+  rebateApplied: boolean;
+}
+
+function slabTax(amount: number, slabs: Array<{ upTo: number | null; rate: number }>): number {
+  let tax = 0;
+  let prev = 0;
+  for (const s of slabs) {
+    const cap = s.upTo ?? Infinity;
+    if (amount <= prev) break;
+    const taxableHere = Math.max(0, Math.min(amount, cap) - prev);
+    tax += taxableHere * s.rate;
+    prev = cap;
+    if (cap === Infinity) break;
+  }
+  return tax;
+}
+
+// New Regime slabs FY 2024-25 (0-3L 0%, 3-6L 5%, 6-9L 10%, 9-12L 15%, 12-15L 20%, >15L 30%)
+const NEW_REGIME_SLABS = [
+  { upTo: 300000, rate: 0 },
+  { upTo: 600000, rate: 0.05 },
+  { upTo: 900000, rate: 0.10 },
+  { upTo: 1200000, rate: 0.15 },
+  { upTo: 1500000, rate: 0.20 },
+  { upTo: null, rate: 0.30 },
+];
+
+// Old Regime slabs FY 2024-25 (0-2.5L 0%, 2.5-5L 5%, 5-10L 20%, >10L 30%)
+const OLD_REGIME_SLABS = [
+  { upTo: 250000, rate: 0 },
+  { upTo: 500000, rate: 0.05 },
+  { upTo: 1000000, rate: 0.20 },
+  { upTo: null, rate: 0.30 },
+];
+
+export function calculateIncomeTaxNewRegime(
+  grossIncome: number,
+  options?: { standardDeduction?: boolean; standardDeductionAmount?: number }
+): TaxBreakdown {
+  const stdDeduction = options?.standardDeduction ? (options?.standardDeductionAmount ?? 50000) : 0;
+  const taxable = Math.max(0, grossIncome - stdDeduction);
+  // Section 87A rebate: taxable <= 7,00,000 => tax rebate up to full tax
+  let tax = slabTax(taxable, NEW_REGIME_SLABS);
+  let rebateApplied = false;
+  if (taxable <= 700000) {
+    tax = 0;
+    rebateApplied = true;
+  }
+  const cess = 0.04 * tax;
+  return { taxableIncome: taxable, slabTax: tax, healthEducationCess: cess, totalTax: tax + cess, rebateApplied };
+}
+
+export function calculateIncomeTaxOldRegime(
+  grossIncome: number,
+  deductions?: { standardDeduction?: number; section80C?: number; section80D?: number; otherDeductions?: number }
+): TaxBreakdown {
+  const std = deductions?.standardDeduction ?? 50000;
+  const d80c = Math.min(deductions?.section80C ?? 0, 150000);
+  const d80d = deductions?.section80D ?? 0;
+  const other = deductions?.otherDeductions ?? 0;
+  const taxable = Math.max(0, grossIncome - std - d80c - d80d - other);
+  // Section 87A rebate: taxable <= 5,00,000 => tax rebate up to full tax
+  let tax = slabTax(taxable, OLD_REGIME_SLABS);
+  let rebateApplied = false;
+  if (taxable <= 500000) {
+    tax = 0;
+    rebateApplied = true;
+  }
+  const cess = 0.04 * tax;
+  return { taxableIncome: taxable, slabTax: tax, healthEducationCess: cess, totalTax: tax + cess, rebateApplied };
+}
+
 // --- EMI advanced helpers ---
 export function calculateMonthlyEMI(
   principalAmount: number,

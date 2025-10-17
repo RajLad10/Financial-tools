@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Financial Tools — SIP & EMI Calculators',
+  title: 'Financial Tools — SIP, EMI, FD, RD & Income Tax Calculators',
   description:
-    'Use free online SIP and EMI calculators with interactive charts. Estimate SIP maturity, EMI, total interest, and total payment with clarity.',
+    'Use free online SIP, EMI, FD, RD, and Income Tax calculators with interactive charts. Plan investments, loans, deposits, and taxes with clarity.',
   alternates: { canonical: '/tools' },
 };
 
@@ -59,6 +59,24 @@ export default function Tools() {
             <div className="p-7">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">EMI Calculator</h2>
               <p className="mt-2 text-gray-600 dark:text-gray-300">Compute EMIs and understand principal vs interest.</p>
+            </div>
+          </a>
+          <a href="/tools/fd" className="card-surface elevation-1 transition hover:elevation-2">
+            <div className="p-7">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">FD Calculator</h2>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">Compute fixed deposit maturity and interest.</p>
+            </div>
+          </a>
+          <a href="/tools/rd" className="card-surface elevation-1 transition hover:elevation-2">
+            <div className="p-7">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">RD Calculator</h2>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">Plan recurring deposits and see maturity value.</p>
+            </div>
+          </a>
+          <a href="/tools/income-tax" className="card-surface elevation-1 transition hover:elevation-2 md:col-span-2">
+            <div className="p-7">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Income Tax Calculator</h2>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">Compare New vs Old Regime with accurate slabs and cess.</p>
             </div>
           </a>
         </div>

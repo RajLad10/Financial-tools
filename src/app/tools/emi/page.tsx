@@ -16,6 +16,10 @@ export const metadata: Metadata = {
     'home loan EMI',
     'car loan EMI',
     'personal loan EMI',
+    'loan comparison calculator',
+    'prepayment calculator',
+    'part payment calculator',
+    'loan affordability calculator',
   ],
   openGraph: {
     title: 'EMI Calculator — Loan EMI, Interest & Total Payment',
@@ -100,6 +104,19 @@ export default function EMIPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Standard EMI Calculator' },
+            { '@type': 'ListItem', position: 2, name: 'Loan Comparison Calculator' },
+            { '@type': 'ListItem', position: 3, name: 'Prepayment / Part Payment Calculator' },
+            { '@type': 'ListItem', position: 4, name: 'Loan Affordability Calculator' },
+          ],
+        }) }}
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">

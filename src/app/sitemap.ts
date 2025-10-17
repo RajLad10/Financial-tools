@@ -11,6 +11,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/tools`, changeFrequency: 'weekly', priority: 0.9, lastModified },
     { url: `${base}/tools/sip`, changeFrequency: 'weekly', priority: 0.9, lastModified },
     { url: `${base}/tools/emi`, changeFrequency: 'weekly', priority: 0.9, lastModified },
+    { url: `${base}/tools/fd`, changeFrequency: 'weekly', priority: 0.85, lastModified },
+    { url: `${base}/tools/rd`, changeFrequency: 'weekly', priority: 0.85, lastModified },
+    { url: `${base}/tools/income-tax`, changeFrequency: 'weekly', priority: 0.92, lastModified },
   ];
   return routes;
 }
