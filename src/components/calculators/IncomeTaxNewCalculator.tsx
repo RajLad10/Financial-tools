@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { animate, useMotionValue } from 'framer-motion';
@@ -32,24 +32,30 @@ const schema = z.object({
 type FormT = z.infer<typeof schema>;
 
 export function IncomeTaxNewCalculator() {
-  const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm<FormT>({
+  const { register, reset, control, watch, formState: { errors } } = useForm<FormT>({
     resolver: zodResolver(schema),
     defaultValues: { grossIncome: 1200000, applyStandardDeduction: true, standardDeductionAmount: 50000 },
   });
 
   const [res, setRes] = useState<ReturnType<typeof calculateIncomeTaxNewRegime> | null>(null);
 
-  const onSubmit = (data: FormT) => {
-    const r = calculateIncomeTaxNewRegime(
-      data.grossIncome,
-      { standardDeduction: data.applyStandardDeduction, standardDeductionAmount: data.standardDeductionAmount }
-    );
-    setRes(r);
-  };
+  const { grossIncome, applyStandardDeduction, standardDeductionAmount } = useWatch({ control });
+  useEffect(() => {
+    if (Number.isFinite(grossIncome) && Number.isFinite(standardDeductionAmount)) {
+      try {
+        const r = calculateIncomeTaxNewRegime(grossIncome as number, { standardDeduction: !!applyStandardDeduction, standardDeductionAmount: standardDeductionAmount as number });
+        setRes(r);
+      } catch {
+        setRes(null);
+      }
+    } else {
+      setRes(null);
+    }
+  }, [grossIncome, applyStandardDeduction, standardDeductionAmount]);
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form className="space-y-6">
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Gross Income (₹)" type="number" {...register('grossIncome', { valueAsNumber: true })} error={errors.grossIncome?.message} />
           <div>
@@ -64,7 +70,6 @@ export function IncomeTaxNewCalculator() {
           </div>
         </div>
         <div className="flex gap-3">
-          <Button type="submit" disabled={isSubmitting}>Calculate</Button>
           <Button type="button" variant="secondary" onClick={() => reset()}>Reset</Button>
         </div>
       </form>

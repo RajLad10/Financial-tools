@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
@@ -50,7 +50,7 @@ const schema = z.object({
 type FormT = z.infer<typeof schema>;
 
 export function PrepaymentCalculator() {
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormT>({
+  const { register, reset, control, formState: { errors } } = useForm<FormT>({
     resolver: zodResolver(schema),
     defaultValues: {
       principalAmount: 2000000,
@@ -64,17 +64,26 @@ export function PrepaymentCalculator() {
 
   const [res, setRes] = useState<PrepaymentResult | null>(null);
 
-  const onSubmit = (data: FormT) => {
-    const r = simulatePrepayment({
-      principalAmount: data.principalAmount,
-      interestRate: data.interestRate,
-      tenureInYears: data.tenureYears,
-      prepaymentAmount: data.prepaymentAmount,
-      prepaymentMonth: data.prepaymentMonth,
-      mode: data.mode,
-    });
-    setRes(r);
-  };
+  const { principalAmount, interestRate, tenureYears, prepaymentAmount, prepaymentMonth, mode } = useWatch({ control });
+  useEffect(() => {
+    if (Number.isFinite(principalAmount) && Number.isFinite(interestRate) && Number.isFinite(tenureYears) && Number.isFinite(prepaymentAmount) && Number.isFinite(prepaymentMonth) && !!mode) {
+      try {
+        const r = simulatePrepayment({
+          principalAmount: principalAmount as number,
+          interestRate: interestRate as number,
+          tenureInYears: tenureYears as number,
+          prepaymentAmount: prepaymentAmount as number,
+          prepaymentMonth: prepaymentMonth as number,
+          mode: mode as 'reduce_tenure' | 'reduce_emi',
+        });
+        setRes(r);
+      } catch {
+        setRes(null);
+      }
+    } else {
+      setRes(null);
+    }
+  }, [principalAmount, interestRate, tenureYears, prepaymentAmount, prepaymentMonth, mode]);
 
   const chartData = res ? {
     labels: res.before.map((d) => `M${d.month}`),
@@ -98,7 +107,7 @@ export function PrepaymentCalculator() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form className="space-y-6">
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Loan Amount (₹)" type="number" {...register('principalAmount', { valueAsNumber: true })} error={errors.principalAmount?.message} />
           <Input label="Interest Rate (%)" type="number" step="0.01" {...register('interestRate', { valueAsNumber: true })} error={errors.interestRate?.message} />
@@ -118,7 +127,6 @@ export function PrepaymentCalculator() {
           </div>
         </div>
         <div className="flex gap-3">
-          <Button type="submit" disabled={isSubmitting}>Recalculate</Button>
           <Button type="button" variant="secondary" onClick={() => reset()}>Reset</Button>
         </div>
       </form>

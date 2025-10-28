@@ -34,29 +34,31 @@ const schema = z.object({
 type FormT = z.infer<typeof schema>;
 
 export function IncomeTaxOldCalculator() {
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormT>({
+  const { register, reset, watch, formState: { errors } } = useForm<FormT>({
     resolver: zodResolver(schema),
     defaultValues: { grossIncome: 1200000, standardDeduction: 50000, section80C: 150000, section80D: 0, otherDeductions: 0 },
   });
 
   const [res, setRes] = useState<ReturnType<typeof calculateIncomeTaxOldRegime> | null>(null);
 
-  const onSubmit = (data: FormT) => {
-    const r = calculateIncomeTaxOldRegime(
-      data.grossIncome,
-      {
-        standardDeduction: data.standardDeduction,
-        section80C: data.section80C,
-        section80D: data.section80D,
-        otherDeductions: data.otherDeductions,
+  const values = watch();
+  useEffect(() => {
+    const { grossIncome, standardDeduction, section80C, section80D, otherDeductions } = values || {} as FormT;
+    if (Number.isFinite(grossIncome) && Number.isFinite(standardDeduction) && Number.isFinite(section80C) && Number.isFinite(section80D) && Number.isFinite(otherDeductions)) {
+      try {
+        const r = calculateIncomeTaxOldRegime(grossIncome as number, { standardDeduction: standardDeduction as number, section80C: section80C as number, section80D: section80D as number, otherDeductions: otherDeductions as number });
+        setRes(r);
+      } catch {
+        setRes(null);
       }
-    );
-    setRes(r);
-  };
+    } else {
+      setRes(null);
+    }
+  }, [values]);
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form className="space-y-6">
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Gross Income (₹)" type="number" {...register('grossIncome', { valueAsNumber: true })} error={errors.grossIncome?.message} />
           <Input label="Standard Deduction (₹)" type="number" {...register('standardDeduction', { valueAsNumber: true })} error={errors.standardDeduction?.message} />
@@ -67,7 +69,6 @@ export function IncomeTaxOldCalculator() {
           <Input label="Other Deductions (₹)" type="number" {...register('otherDeductions', { valueAsNumber: true })} error={errors.otherDeductions?.message} />
         </div>
         <div className="flex gap-3">
-          <Button type="submit" disabled={isSubmitting}>Calculate</Button>
           <Button type="button" variant="secondary" onClick={() => reset()}>Reset</Button>
         </div>
       </form>

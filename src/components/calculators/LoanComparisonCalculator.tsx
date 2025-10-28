@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
@@ -50,7 +50,7 @@ const schema = z.object({
 type FormT = z.infer<typeof schema>;
 
 export function LoanComparisonCalculator() {
-  const { register, handleSubmit, watch, reset, formState: { errors, isSubmitting } } = useForm<FormT>({
+  const { register, control, watch, reset, formState: { errors } } = useForm<FormT>({
     resolver: zodResolver(schema),
     defaultValues: {
       sameAmount: true,
@@ -65,18 +65,27 @@ export function LoanComparisonCalculator() {
 
   const [res, setRes] = useState<{ emi1: number; emi2: number; total1: number; total2: number; interest1: number; interest2: number } | null>(null);
 
-  const onSubmit = (data: FormT) => {
-    const amount2 = data.sameAmount ? data.amount1 : (data.amount2 ?? data.amount1);
-    const emi1 = calculateMonthlyEMI(data.amount1, data.rate1, data.years1);
-    const emi2 = calculateMonthlyEMI(amount2, data.rate2, data.years2);
-    const n1 = Math.round(data.years1 * 12);
-    const n2 = Math.round(data.years2 * 12);
-    const total1 = emi1 * n1;
-    const total2 = emi2 * n2;
-    const interest1 = total1 - data.amount1;
-    const interest2 = total2 - amount2;
-    setRes({ emi1, emi2, total1, total2, interest1, interest2 });
-  };
+  const { sameAmount, amount1, amount2, rate1, years1, rate2, years2 } = useWatch({ control });
+  useEffect(() => {
+    if (Number.isFinite(amount1) && Number.isFinite(rate1) && Number.isFinite(years1) && Number.isFinite(rate2) && Number.isFinite(years2)) {
+      try {
+        const amt2 = sameAmount ? (amount1 as number) : ((Number.isFinite(amount2 as number) ? (amount2 as number) : (amount1 as number)));
+        const emi1 = calculateMonthlyEMI(amount1 as number, rate1 as number, years1 as number);
+        const emi2 = calculateMonthlyEMI(amt2, rate2 as number, years2 as number);
+        const n1 = Math.round((years1 as number) * 12);
+        const n2 = Math.round((years2 as number) * 12);
+        const total1 = emi1 * n1;
+        const total2 = emi2 * n2;
+        const interest1 = total1 - (amount1 as number);
+        const interest2 = total2 - amt2;
+        setRes({ emi1, emi2, total1, total2, interest1, interest2 });
+      } catch {
+        setRes(null);
+      }
+    } else {
+      setRes(null);
+    }
+  }, [sameAmount, amount1, amount2, rate1, years1, rate2, years2]);
 
   const chartData = res ? {
     labels: ['EMI', 'Total Interest', 'Total Payment'],
@@ -88,7 +97,7 @@ export function LoanComparisonCalculator() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form className="space-y-6">
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
@@ -111,7 +120,6 @@ export function LoanComparisonCalculator() {
           <Input label="Tenure (Loan 2) Years" type="number" {...register('years2', { valueAsNumber: true })} error={errors.years2?.message} />
         </div>
         <div className="flex gap-3">
-          <Button type="submit" disabled={isSubmitting}>Compare</Button>
           <Button type="button" variant="secondary" onClick={() => reset()}>Reset</Button>
         </div>
       </form>

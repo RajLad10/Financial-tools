@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
@@ -23,7 +23,6 @@ const Pie = dynamic(() => import('react-chartjs-2').then((m) => m.Pie), { ssr: f
 import { animate, motion, useMotionValue } from 'framer-motion';
 
 import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
 import { calculateTargetSIP, type TargetSIPResult } from '@/lib/calculations';
 
 ChartJS.register(
@@ -69,19 +68,24 @@ export function TargetSIPCalculator() {
   const [result, setResult] = useState<TargetSIPResult | null>(null);
   const [displayMode, setDisplayMode] = useState<'full' | 'compact'>('full');
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<TargetForm>({
+  const { register, control, formState: { errors } } = useForm<TargetForm>({
     resolver: zodResolver(targetSchema),
     defaultValues: { targetAmount: 1000000, years: 10, expectedReturn: 12 },
   });
 
-  const onSubmit = (data: TargetForm) => {
-    const res = calculateTargetSIP({
-      targetAmount: data.targetAmount,
-      years: data.years,
-      expectedReturn: data.expectedReturn,
-    });
-    setResult(res);
-  };
+  const { targetAmount, years, expectedReturn } = useWatch({ control });
+  useEffect(() => {
+    if (Number.isFinite(targetAmount) && Number.isFinite(years) && Number.isFinite(expectedReturn)) {
+      try {
+        const r = calculateTargetSIP({ targetAmount: targetAmount as number, years: years as number, expectedReturn: expectedReturn as number });
+        setResult(r);
+      } catch {
+        setResult(null);
+      }
+    } else {
+      setResult(null);
+    }
+  }, [targetAmount, years, expectedReturn]);
 
   const lineData = result ? {
     labels: result.monthlyData.map(d => `Year ${Math.ceil(d.month/12)}`),
@@ -129,11 +133,11 @@ export function TargetSIPCalculator() {
     <div className="max-w-4xl mx-auto p-6">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Target-based SIP</h2>
       <div className="space-y-8">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form className="space-y-6">
           <Input label="Target Amount (₹)" type="number" {...register('targetAmount', { valueAsNumber: true })} error={errors.targetAmount?.message} />
           <Input label="Time Period (Years)" type="number" {...register('years', { valueAsNumber: true })} error={errors.years?.message} />
           <Input label="Expected Return (%)" type="number" step="0.1" {...register('expectedReturn', { valueAsNumber: true })} error={errors.expectedReturn?.message} />
-          <Button type="submit" disabled={isSubmitting}>Calculate</Button>
+          {/* Auto-calc enabled; no submit button */}
         </form>
 
         {result && (

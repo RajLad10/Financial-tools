@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { animate, useMotionValue } from 'framer-motion';
@@ -32,21 +32,34 @@ const schema = z.object({
 type FormT = z.infer<typeof schema>;
 
 export function RDCalculator() {
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormT>({
+  const { register, reset, control, formState: { errors } } = useForm<FormT>({
     resolver: zodResolver(schema),
     defaultValues: { monthlyDeposit: 5000, annualRate: 7.25, years: 5 },
   });
 
   const [res, setRes] = useState<{ maturityAmount: number; totalDeposit: number; interestEarned: number } | null>(null);
 
-  const onSubmit = (data: FormT) => {
-    const r = calculateRD(data.monthlyDeposit, data.annualRate, data.years);
-    setRes(r);
-  };
+  const { monthlyDeposit, annualRate, years } = useWatch({ control });
+  useEffect(() => {
+    if (
+      Number.isFinite(monthlyDeposit) &&
+      Number.isFinite(annualRate) &&
+      Number.isFinite(years)
+    ) {
+      try {
+        const r = calculateRD(monthlyDeposit as number, annualRate as number, years as number);
+        setRes(r);
+      } catch {
+        setRes(null);
+      }
+    } else {
+      setRes(null);
+    }
+  }, [monthlyDeposit, annualRate, years]);
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form className="space-y-6">
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Monthly Deposit (₹)" type="number" {...register('monthlyDeposit', { valueAsNumber: true })} error={errors.monthlyDeposit?.message} />
           <Input label="Annual Interest Rate (%)" type="number" step="0.01" {...register('annualRate', { valueAsNumber: true })} error={errors.annualRate?.message} />
@@ -55,7 +68,6 @@ export function RDCalculator() {
           <Input label="Tenure (Years)" type="number" {...register('years', { valueAsNumber: true })} error={errors.years?.message} />
         </div>
         <div className="flex gap-3">
-          <Button type="submit" disabled={isSubmitting}>Calculate</Button>
           <Button type="button" variant="secondary" onClick={() => reset()}>Reset</Button>
         </div>
       </form>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
 import {
@@ -22,7 +22,6 @@ const Pie = dynamic(() => import('react-chartjs-2').then((m) => m.Pie), { ssr: f
 import { animate, motion, useMotionValue } from 'framer-motion';
 
 import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
 import { calculateSIP, type SIPCalculationResult } from '@/lib/calculations';
 import { sipFormSchema, type SIPFormData } from '@/lib/validations';
 
@@ -80,8 +79,8 @@ export function SIPCalculator() {
 
   const {
     register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
+    control,
+    formState: { errors },
   } = useForm<SIPFormData>({
     resolver: zodResolver(sipFormSchema),
     defaultValues: {
@@ -91,14 +90,19 @@ export function SIPCalculator() {
     },
   });
 
-  const onSubmit = (data: SIPFormData) => {
-    const result = calculateSIP(
-      data.monthlyInvestment,
-      data.years,
-      data.expectedReturn
-    );
-    setResult(result);
-  };
+  const { monthlyInvestment, years, expectedReturn } = useWatch({ control });
+  useEffect(() => {
+    if (Number.isFinite(monthlyInvestment) && Number.isFinite(years) && Number.isFinite(expectedReturn)) {
+      try {
+        const r = calculateSIP(monthlyInvestment as number, years as number, expectedReturn as number);
+        setResult(r);
+      } catch {
+        setResult(null);
+      }
+    } else {
+      setResult(null);
+    }
+  }, [monthlyInvestment, years, expectedReturn]);
 
   const chartData = result ? {
     labels: result.monthlyData.map((data) => `Year ${Math.ceil(data.month / 12)}`),
@@ -161,7 +165,7 @@ export function SIPCalculator() {
       </h1>
 
       <div className="space-y-8">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form className="space-y-6">
             <Input
               label="Monthly Investment (₹)"
               type="number"
@@ -184,9 +188,7 @@ export function SIPCalculator() {
               error={errors.expectedReturn?.message}
             />
 
-            <Button type="submit" disabled={isSubmitting}>
-              Calculate
-            </Button>
+            {/* Auto-calc enabled; no submit button */}
         </form>
 
         {result && (

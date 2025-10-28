@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
@@ -20,7 +20,6 @@ const Line = dynamic(() => import('react-chartjs-2').then((m) => m.Line), { ssr:
 import { animate, motion, useMotionValue } from 'framer-motion';
 
 import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
 import { calculateSIPvsLumpsum, type SIPvsLumpsumResult } from '@/lib/calculations';
 
 ChartJS.register(
@@ -66,23 +65,25 @@ export function SIPvsLumpsumCalculator() {
   const [result, setResult] = useState<SIPvsLumpsumResult | null>(null);
   const [displayMode, setDisplayMode] = useState<'full' | 'compact'>('full');
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<CompareForm>({
+  const { register, control, formState: { errors } } = useForm<CompareForm>({
     resolver: zodResolver(compareSchema),
     defaultValues: { monthlyInvestment: 5000, years: 10, expectedReturn: 12, lumpsumAmount: undefined },
   });
 
-  const onSubmit = (data: CompareForm) => {
-    const normalizedLumpsum = Number.isFinite(data.lumpsumAmount as number)
-      ? (data.lumpsumAmount as number)
-      : undefined;
-    const res = calculateSIPvsLumpsum(
-      data.monthlyInvestment,
-      data.years,
-      data.expectedReturn,
-      normalizedLumpsum
-    );
-    setResult(res);
-  };
+  const { monthlyInvestment, years, expectedReturn, lumpsumAmount } = useWatch({ control });
+  useEffect(() => {
+    if (Number.isFinite(monthlyInvestment) && Number.isFinite(years) && Number.isFinite(expectedReturn)) {
+      try {
+        const normalizedLumpsum = Number.isFinite(lumpsumAmount as number) ? (lumpsumAmount as number) : undefined;
+        const r = calculateSIPvsLumpsum(monthlyInvestment as number, years as number, expectedReturn as number, normalizedLumpsum);
+        setResult(r);
+      } catch {
+        setResult(null);
+      }
+    } else {
+      setResult(null);
+    }
+  }, [monthlyInvestment, years, expectedReturn, lumpsumAmount]);
 
   const chartData = result ? {
     labels: result.sip.monthlyData.map(d => `Year ${Math.ceil(d.month/12)}`),
@@ -110,12 +111,12 @@ export function SIPvsLumpsumCalculator() {
     <div className="max-w-4xl mx-auto p-6">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">SIP vs Lumpsum</h2>
       <div className="space-y-8">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form className="space-y-6">
           <Input label="Monthly Investment (₹)" type="number" {...register('monthlyInvestment', { valueAsNumber: true })} error={errors.monthlyInvestment?.message} />
           <Input label="Time Period (Years)" type="number" {...register('years', { valueAsNumber: true })} error={errors.years?.message} />
           <Input label="Expected Return (%)" type="number" step="0.1" {...register('expectedReturn', { valueAsNumber: true })} error={errors.expectedReturn?.message} />
           <Input label="Lumpsum (optional) (₹)" type="number" {...register('lumpsumAmount', { valueAsNumber: true })} />
-          <Button type="submit" disabled={isSubmitting}>Compare</Button>
+          {/* Auto-calc enabled; no submit button */}
         </form>
 
         {result && (

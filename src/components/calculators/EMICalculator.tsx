@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Chart as ChartJS,
@@ -20,7 +20,6 @@ const Bar = dynamic(() => import('react-chartjs-2').then((m) => m.Bar), { ssr: f
 import { animate, motion, useMotionValue } from 'framer-motion';
 
 import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
 import { calculateEMI, type EMICalculationResult } from '@/lib/calculations';
 import { emiFormSchema, type EMIFormData } from '@/lib/validations';
 
@@ -64,8 +63,8 @@ export function EMICalculator() {
 
   const {
     register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
+    control,
+    formState: { errors },
   } = useForm<EMIFormData>({
     resolver: zodResolver(emiFormSchema),
     defaultValues: {
@@ -75,14 +74,23 @@ export function EMICalculator() {
     },
   });
 
-  const onSubmit = (data: EMIFormData) => {
-    const result = calculateEMI(
-      data.loanAmount,
-      data.interestRate,
-      data.tenureInYears
-    );
-    setResult(result);
-  };
+  const { loanAmount, interestRate, tenureInYears } = useWatch({ control });
+  useEffect(() => {
+    if (
+      Number.isFinite(loanAmount) &&
+      Number.isFinite(interestRate) &&
+      Number.isFinite(tenureInYears)
+    ) {
+      try {
+        const r = calculateEMI(loanAmount as number, interestRate as number, tenureInYears as number);
+        setResult(r);
+      } catch {
+        setResult(null);
+      }
+    } else {
+      setResult(null);
+    }
+  }, [loanAmount, interestRate, tenureInYears]);
 
   const pieChartData = result
     ? {
@@ -139,7 +147,7 @@ export function EMICalculator() {
       </h1>
 
       <div className="space-y-8">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form className="space-y-6">
             <Input
               label="Loan Amount (₹)"
               type="number"
@@ -162,9 +170,7 @@ export function EMICalculator() {
               error={errors.tenureInYears?.message}
             />
 
-            <Button type="submit" disabled={isSubmitting}>
-              Calculate
-            </Button>
+            {/* Auto-calculation enabled; no submit button */}
         </form>
 
         {result && (
